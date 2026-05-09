@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       )
       .join('\n\n');
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const result = await model.generateContent(`다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
 
