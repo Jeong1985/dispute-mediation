@@ -1,9 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,8 +11,6 @@ export async function POST(req: NextRequest) {
         `${m.role === 'user' ? `[${studentName} 학생]` : '[AI 상담사]'}: ${m.content}`
       )
       .join('\n\n');
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = `다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
 
@@ -48,13 +43,27 @@ ${conversation}
 
 (추가로 교사가 알아야 할 내용이 있다면 기술, 없다면 "없음")`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      // @ts-ignore
-      generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
-    });
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    );
 
-    const summary = result.response.text();
+    const data = await res.json();
+    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!summary) {
+      console.error('Gemini response:', JSON.stringify(data));
+      return NextResponse.json({ error: '요약 생성 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
     return NextResponse.json({ summary });
   } catch (error) {
     console.error('Summary API error:', error);
