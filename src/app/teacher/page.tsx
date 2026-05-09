@@ -15,6 +15,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -168,6 +169,22 @@ export default function TeacherPage() {
       setCreateError('방 개설 중 오류가 발생했습니다.');
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const deleteRoom = async (roomId: string) => {
+    if (!confirm(`방 ${roomId}를 삭제할까요? 관련 상담 내용도 모두 삭제됩니다.`)) return;
+    try {
+      // 관련 세션 삭제
+      const q = query(collection(db, 'sessions'), where('roomId', '==', roomId));
+      const snapshot = await getDocs(q);
+      await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+      // 방 삭제
+      await deleteDoc(doc(db, 'rooms', roomId));
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    } catch (err) {
+      console.error(err);
+      alert('삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -567,18 +584,28 @@ export default function TeacherPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {rooms.map((room) => (
-              <div
-                key={room.id}
-                className="card hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => openRoomDetail(room)}
-              >
+              <div key={room.id} className="card hover:shadow-lg transition-shadow">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => openRoomDetail(room)}
+                  >
                     <div className="text-3xl font-black text-blue-700 tracking-widest">{room.id}</div>
                     <div className="font-bold text-gray-800 mt-1">{room.topic}</div>
                   </div>
-                  <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl text-sm font-medium">
-                    세부 보기 →
+                  <div className="flex flex-col gap-2 ml-3">
+                    <div
+                      className="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl text-sm font-medium cursor-pointer hover:bg-blue-100"
+                      onClick={() => openRoomDetail(room)}
+                    >
+                      세부 보기 →
+                    </div>
+                    <button
+                      onClick={() => deleteRoom(room.id)}
+                      className="bg-red-50 text-red-500 px-3 py-1 rounded-xl text-sm font-medium hover:bg-red-100"
+                    >
+                      삭제 🗑
+                    </button>
                   </div>
                 </div>
               </div>

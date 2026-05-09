@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
     const history: { role: string; parts: { text: string }[] }[] = [];
 
     if (messages.length > 0) {
-      // 마지막 메시지를 현재 입력으로, 나머지를 history로
       const historyMessages: Message[] = messages.slice(0, -1);
       const lastMsg: Message = messages[messages.length - 1];
       currentMessage = lastMsg.role === 'user' ? lastMsg.content : '계속해주세요';
@@ -59,6 +58,12 @@ export async function POST(req: NextRequest) {
           role: m.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: m.content }],
         });
+      }
+
+      // Gemini history는 반드시 user로 시작해야 함
+      // model 메시지로 시작하면 앞에 빈 user 메시지 추가
+      if (history.length > 0 && history[0].role === 'model') {
+        history.unshift({ role: 'user', parts: [{ text: '안녕하세요' }] });
       }
     }
 
