@@ -242,10 +242,35 @@ export default function TeacherPage() {
   };
 
   const sendEmailWithPDF = async () => {
-    if (!selectedSession) return;
+    if (!summaryRef.current || !selectedSession) return;
     setEmailSending(true);
 
     try {
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF } = await import('jspdf');
+
+      const canvas = await html2canvas(summaryRef.current, {
+        scale: 1.5,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      let yPosition = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      while (yPosition < pdfHeight) {
+        if (yPosition > 0) pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, -yPosition, pdfWidth, pdfHeight);
+        yPosition += pageHeight;
+      }
+
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+
       const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -253,6 +278,7 @@ export default function TeacherPage() {
           teacherEmail: user!.email,
           studentName: selectedSession.studentName,
           roomTopic: selectedSession.roomTopic,
+          pdfBase64,
           summary,
         }),
       });
@@ -263,7 +289,7 @@ export default function TeacherPage() {
         alert('이메일 발송에 실패했습니다. 이메일 설정을 확인해 주세요.');
       }
     } catch (err) {
-      console.error('Email error:', err);
+      console.error('PDF/email error:', err);
       alert('오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
       setEmailSending(false);
