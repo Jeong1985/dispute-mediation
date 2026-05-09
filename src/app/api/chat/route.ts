@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_PROMPT + `\n\n학생 이름: ${studentName}\n상담 주제: ${roomTopic}`,
+      // @ts-ignore
+      generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
     });
 
     // Gemini는 role이 'user'/'model' (Anthropic은 'user'/'assistant')
