@@ -250,12 +250,12 @@ export default function TeacherPage() {
       const { default: jsPDF } = await import('jspdf');
 
       const canvas = await html2canvas(summaryRef.current, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
@@ -265,7 +265,7 @@ export default function TeacherPage() {
 
       while (yPosition < pdfHeight) {
         if (yPosition > 0) pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, -yPosition, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'JPEG', 0, -yPosition, pdfWidth, pdfHeight);
         yPosition += pageHeight;
       }
 
