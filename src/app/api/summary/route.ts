@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const result = await model.generateContent(`다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
+    const prompt = `다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
 
 ─────────────────────────────
 ${conversation}
@@ -46,7 +46,13 @@ ${conversation}
 
 ## 특이사항
 
-(추가로 교사가 알아야 할 내용이 있다면 기술, 없다면 "없음")`);
+(추가로 교사가 알아야 할 내용이 있다면 기술, 없다면 "없음")`;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      // @ts-ignore
+      generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+    });
 
     const summary = result.response.text();
     return NextResponse.json({ summary });
