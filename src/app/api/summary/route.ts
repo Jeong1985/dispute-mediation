@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,13 +13,9 @@ export async function POST(req: NextRequest) {
       )
       .join('\n\n');
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: `다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const result = await model.generateContent(`다음은 "${studentName}" 학생이 "${roomTopic}" 상담실에서 AI 상담사와 나눈 대화입니다.
 
 ─────────────────────────────
 ${conversation}
@@ -48,12 +44,9 @@ ${conversation}
 
 ## 특이사항
 
-(추가로 교사가 알아야 할 내용이 있다면 기술, 없다면 "없음")`,
-        },
-      ],
-    });
+(추가로 교사가 알아야 할 내용이 있다면 기술, 없다면 "없음")`);
 
-    const summary = response.content[0].type === 'text' ? response.content[0].text : '';
+    const summary = result.response.text();
     return NextResponse.json({ summary });
   } catch (error) {
     console.error('Summary API error:', error);
