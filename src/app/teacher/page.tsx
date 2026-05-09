@@ -241,7 +241,7 @@ export default function TeacherPage() {
     }
   };
 
-  const sendEmailWithPDF = async () => {
+  const downloadPDF = async () => {
     if (!summaryRef.current || !selectedSession) return;
     setEmailSending(true);
 
@@ -250,12 +250,12 @@ export default function TeacherPage() {
       const { default: jsPDF } = await import('jspdf');
 
       const canvas = await html2canvas(summaryRef.current, {
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
@@ -265,32 +265,15 @@ export default function TeacherPage() {
 
       while (yPosition < pdfHeight) {
         if (yPosition > 0) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, -yPosition, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'PNG', 0, -yPosition, pdfWidth, pdfHeight);
         yPosition += pageHeight;
       }
 
-      const pdfBase64 = pdf.output('datauristring').split(',')[1];
-
-      const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teacherEmail: user!.email,
-          studentName: selectedSession.studentName,
-          roomTopic: selectedSession.roomTopic,
-          pdfBase64,
-          summary,
-        }),
-      });
-
-      if (res.ok) {
-        setEmailSent(true);
-      } else {
-        alert('이메일 발송에 실패했습니다. 이메일 설정을 확인해 주세요.');
-      }
+      pdf.save(`${selectedSession.studentName}_상담요약_${new Date().toISOString().slice(0, 10)}.pdf`);
+      setEmailSent(true);
     } catch (err) {
-      console.error('PDF/email error:', err);
-      alert('오류가 발생했습니다. 다시 시도해 주세요.');
+      console.error('PDF error:', err);
+      alert('PDF 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
       setEmailSending(false);
     }
@@ -441,20 +424,20 @@ export default function TeacherPage() {
               <div className="mt-4 flex gap-3 justify-end">
                 {emailSent ? (
                   <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-3 rounded-xl font-bold">
-                    ✅ 이메일 발송 완료!
+                    ✅ PDF 다운로드 완료!
                   </div>
                 ) : (
                   <button
-                    onClick={sendEmailWithPDF}
+                    onClick={downloadPDF}
                     disabled={emailSending}
                     className="btn-primary flex items-center gap-2"
                   >
                     {emailSending ? (
                       <>
-                        <span className="animate-spin">⏳</span> PDF 생성 및 발송 중...
+                        <span className="animate-spin">⏳</span> PDF 생성 중...
                       </>
                     ) : (
-                      <>📧 PDF 생성 후 이메일 발송</>
+                      <>📄 PDF 다운로드</>
                     )}
                   </button>
                 )}
