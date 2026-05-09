@@ -18,7 +18,6 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
 
@@ -114,11 +113,17 @@ export default function TeacherPage() {
     try {
       const q = query(
         collection(db, 'rooms'),
-        where('teacherUid', '==', uid),
-        orderBy('createdAt', 'desc')
+        where('teacherUid', '==', uid)
       );
       const snapshot = await getDocs(q);
-      setRooms(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Room)));
+      const roomList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Room));
+      // 최신순 정렬 (클라이언트)
+      roomList.sort((a, b) => {
+        const aTime = (a as any).createdAt?.seconds ?? 0;
+        const bTime = (b as any).createdAt?.seconds ?? 0;
+        return bTime - aTime;
+      });
+      setRooms(roomList);
     } catch (err) {
       console.error('Load rooms error:', err);
     }
@@ -176,11 +181,17 @@ export default function TeacherPage() {
     try {
       const q = query(
         collection(db, 'sessions'),
-        where('roomId', '==', room.id),
-        orderBy('updatedAt', 'desc')
+        where('roomId', '==', room.id)
       );
       const snapshot = await getDocs(q);
-      setSessions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Session)));
+      const sessionList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Session));
+      // 최신순 정렬 (클라이언트)
+      sessionList.sort((a, b) => {
+        const aTime = a.updatedAt?.seconds ?? 0;
+        const bTime = b.updatedAt?.seconds ?? 0;
+        return bTime - aTime;
+      });
+      setSessions(sessionList);
     } catch (err) {
       console.error(err);
     } finally {
