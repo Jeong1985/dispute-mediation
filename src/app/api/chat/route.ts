@@ -2,6 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { saveSessionToDrive } from '@/lib/google-drive';
 
+export const maxDuration = 60;
+
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 
 const SYSTEM_PROMPT = `당신은 다정초등학교 분쟁조정위원회의 친절한 AI 상담 선생님입니다.
